@@ -30,7 +30,6 @@ use OCA\Mail\Http\JSONResponse;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Response;
-use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IRequest;
 
 class AvatarsController extends Controller {
