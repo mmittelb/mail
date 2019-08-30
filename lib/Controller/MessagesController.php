@@ -226,8 +226,7 @@ class MessagesController extends Controller {
 			$htmlResponse->setContentSecurityPolicy($policy);
 
 			// Enable caching
-			$htmlResponse->setCacheHeaders(60 * 60, $this->timeFactory);
-			$htmlResponse->addHeader('Pragma', 'cache');
+			$htmlResponse->cacheFor(60 * 60);
 
 			return $htmlResponse;
 		} catch (\Exception $ex) {
