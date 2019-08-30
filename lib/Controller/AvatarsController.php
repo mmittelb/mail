@@ -41,19 +41,14 @@ class AvatarsController extends Controller {
 	/** @var string */
 	private $uid;
 
-	/** @var ITimeFactory */
-	private $timeFactory;
-
 	public function __construct(string $appName,
 								IRequest $request,
 								IAvatarService $avatarService,
-								string $UserId,
-								ITimeFactory $timeFactory) {
+								string $UserId) {
 		parent::__construct($appName, $request);
 
 		$this->avatarService = $avatarService;
 		$this->uid = $UserId;
-		$this->timeFactory = $timeFactory;
 	}
 
 	/**
@@ -80,7 +75,7 @@ class AvatarsController extends Controller {
 
 			// Debounce this a bit
 			// (cache for one day)
-			$response->setCacheHeaders(24 * 60 * 60, $this->timeFactory);
+			$response->cacheFor(24*60*60);
 
 			return $response;
 		}
@@ -88,7 +83,7 @@ class AvatarsController extends Controller {
 		$response = new JSONResponse($avatar);
 
 		// Let the browser cache this for a week
-		$response->setCacheHeaders(7 * 24 * 60 * 60, $this->timeFactory);
+		$response->cacheFor(7 * 24 * 60 * 60);
 
 		return $response;
 	}
@@ -118,7 +113,7 @@ class AvatarsController extends Controller {
 		$resp->addHeader('Content-Type', $avatar->getMime());
 
 		// Let the browser cache this for a week
-		$resp->setCacheHeaders(7 * 24 * 60 * 60, $this->timeFactory);
+		$resp->cacheFor(7 * 24 * 60 * 60);
 
 		return $resp;
 	}
