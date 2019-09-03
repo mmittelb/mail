@@ -90,13 +90,13 @@
 			{{ t('mail', 'Note that the mail came from a noreply address so	your reply will probably not be read.') }}
 		</div>
 		<div class="composer-fields">
-			<!--@keyup="onInputChanged"
-				@keypress="onBodyKeyPress"-->
+			<!--@keypress="onBodyKeyPress"-->
 			<ckeditor :editor="editor"
 					  v-model="bodyVal"
 					  :config="editorConfig"
 					  name="body"
-					  class="message-body"></ckeditor>
+					  class="message-body"
+					  @input="onInputChanged"></ckeditor>
 		</div>
 		<div class="submit-message-wrapper">
 			<input class="submit-message send primary" type="submit" :value="submitButtonTitle" @click="onSend" />
@@ -218,8 +218,8 @@ export default {
 			selectBcc: this.bcc,
 			editor: CKBalloon,
 			editorConfig: {
-				placeholder: t('mail', 'Message …')
-				// The configuration of the editor.
+				placeholder: t('mail', 'Message …'),
+				toolbar: [ 'bold', 'italic', 'blockQuote'],
 			}
 		}
 	},
