@@ -15,6 +15,8 @@
     "test:watch": "mochapack -w --webpack-config webpack.test.js --require src/tests/setup.js \"src/tests/**/*.spec.js\""
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-build-balloon": "^12.4.0",
+    "@ckeditor/ckeditor5-vue": "^1.0.0-beta.2",
     "@vue/babel-preset-app": "^3.11.0",
     "color-convert": "^2.0.1",
     "davclient.js": "^0.1.0",

@@ -90,15 +90,13 @@
 			{{ t('mail', 'Note that the mail came from a noreply address so	your reply will probably not be read.') }}
 		</div>
 		<div class="composer-fields">
-			<textarea
-				v-model="bodyVal"
-				v-autosize
-				name="body"
-				class="message-body"
-				:placeholder="t('mail', 'Message …')"
-				@keyup="onInputChanged"
-				@keypress="onBodyKeyPress"
-			></textarea>
+			<!--@keyup="onInputChanged"
+				@keypress="onBodyKeyPress"-->
+			<ckeditor :editor="editor"
+					  v-model="bodyVal"
+					  :config="editorConfig"
+					  name="body"
+					  class="message-body"></ckeditor>
 		</div>
 		<div class="submit-message-wrapper">
 			<input class="submit-message send primary" type="submit" :value="submitButtonTitle" @click="onSend" />
@@ -127,8 +125,11 @@
 <script>
 import _ from 'lodash'
 import Autosize from 'vue-autosize'
+import CKBalloon from '@ckeditor/ckeditor5-build-balloon'
+import CKEditor from '@ckeditor/ckeditor5-vue'
 import debouncePromise from 'debounce-promise'
 import Multiselect from 'nextcloud-vue/dist/Components/Multiselect'
+import {translate as t} from 'nextcloud-l10n'
 import Vue from 'vue'
 
 import {findRecipient} from '../service/AutocompleteService'
@@ -152,6 +153,7 @@ export default {
 	name: 'Composer',
 	components: {
 		ComposerAttachments,
+		ckeditor: CKEditor.component,
 		Loading,
 		Multiselect,
 	},
@@ -214,6 +216,11 @@ export default {
 			selectTo: this.to,
 			selectCc: this.cc,
 			selectBcc: this.bcc,
+			editor: CKBalloon,
+			editorConfig: {
+				placeholder: t('mail', 'Message …')
+				// The configuration of the editor.
+			}
 		}
 	},
 	computed: {
@@ -391,7 +398,7 @@ export default {
 }
 .composer-fields .multiselect,
 .composer-fields input,
-.composer-fields textarea {
+.composer-fields ckeditor {
 	flex-grow: 1;
 	max-width: none;
 	border: none;
@@ -407,7 +414,7 @@ export default {
 #cc,
 #bcc,
 input.subject,
-textarea.message-body {
+.message-body {
 	padding: 12px;
 	margin: 0;
 }
@@ -419,7 +426,7 @@ textarea.message-body {
 input.cc,
 input.bcc,
 input.subject,
-textarea.message-body {
+.message-body {
 	border-top: none;
 }
 
@@ -428,10 +435,13 @@ input.subject {
 	font-weight: 300;
 }
 
-textarea.message-body {
+.message-body {
 	min-height: 300px;
-	resize: none;
+	width: 100%;
 	padding-right: 25%;
+	border: none !important;
+	outline: none !important;
+	box-shadow: none !important;
 }
 
 #draft-status {
@@ -457,7 +467,7 @@ label.bcc-label {
 	bottom: 0;
 }
 
-textarea.reply {
+.reply {
 	min-height: 100px;
 }
 
