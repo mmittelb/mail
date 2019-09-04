@@ -125,8 +125,11 @@
 <script>
 import _ from 'lodash'
 import Autosize from 'vue-autosize'
-import CKBalloon from '@ckeditor/ckeditor5-build-balloon'
+import CKBalloon from '@ckeditor/ckeditor5-editor-balloon/src/ballooneditor'
 import CKEditor from '@ckeditor/ckeditor5-vue'
+import EssentialsPlugin from '@ckeditor/ckeditor5-essentials/src/essentials'
+import BoldPlugin from '@ckeditor/ckeditor5-basic-styles/src/bold'
+import ItalicPlugin from '@ckeditor/ckeditor5-basic-styles/src/italic'
 import debouncePromise from 'debounce-promise'
 import Multiselect from 'nextcloud-vue/dist/Components/Multiselect'
 import {translate as t} from 'nextcloud-l10n'
@@ -219,7 +222,18 @@ export default {
 			editor: CKBalloon,
 			editorConfig: {
 				placeholder: t('mail', 'Message …'),
-				toolbar: [ 'bold', 'italic', 'blockQuote'],
+				plugins: [
+					EssentialsPlugin,
+					BoldPlugin,
+					ItalicPlugin,
+				],
+				toolbar: {
+					items: [
+						'bold',
+						'italic',
+					]
+				}
+				//toolbar: [ 'bold', 'italic', 'blockQuote'],
 			}
 		}
 	},
