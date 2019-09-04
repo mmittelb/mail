@@ -41,6 +41,7 @@ use OCA\Mail\Contracts\IMailTransmission;
 use OCA\Mail\Db\Alias;
 use OCA\Mail\Exception\AttachmentNotFoundException;
 use OCA\Mail\Exception\ServiceException;
+use OCA\Mail\IMAP\IMAPClientFactory;
 use OCA\Mail\Model\IMessage;
 use OCA\Mail\Model\NewMessageData;
 use OCA\Mail\Model\RepliedMessageData;
@@ -60,8 +61,11 @@ class MailTransmission implements IMailTransmission {
 	/** @var IAttachmentService */
 	private $attachmentService;
 
+	/** @var IMAPClientFactory */
+	private $imapClientFactory;
+
 	/** @var SmtpClientFactory */
-	private $clientFactory;
+	private $smtpClientFactory;
 
 	/** @var ILogger */
 	private $logger;
@@ -70,18 +74,20 @@ class MailTransmission implements IMailTransmission {
 	 * @param AddressCollector $addressCollector
 	 * @param Folder $userFolder
 	 * @param IAttachmentService $attachmentService
-	 * @param SmtpClientFactory $clientFactory
+	 * @param SmtpClientFactory $smtpClientFactory
 	 * @param ILogger $logger
 	 */
 	public function __construct(AddressCollector $addressCollector,
 								$userFolder,
 								IAttachmentService $attachmentService,
-								SmtpClientFactory $clientFactory,
+								IMAPClientFactory $imapClientFactory,
+								SmtpClientFactory $smtpClientFactory,
 								ILogger $logger) {
 		$this->addressCollector = $addressCollector;
 		$this->userFolder = $userFolder;
 		$this->attachmentService = $attachmentService;
-		$this->clientFactory = $clientFactory;
+		$this->imapClientFactory = $imapClientFactory;
+		$this->smtpClientFactory = $smtpClientFactory;
 		$this->logger = $logger;
 	}
 
@@ -120,7 +126,7 @@ class MailTransmission implements IMailTransmission {
 		$message->setContent($messageData->getBody());
 		$this->handleAttachments($userId, $messageData, $message);
 
-		$transport = $this->clientFactory->create($account);
+		$transport = $this->smtpClientFactory->create($account);
 		// build mime body
 		$headers = [
 			'From' => $message->getFrom()->first()->toHorde(),
@@ -167,7 +173,7 @@ class MailTransmission implements IMailTransmission {
 			$draftsFolder->setMessageFlag($draftUID, Horde_Imap_Client::FLAG_DELETED, true);
 
 			$draftsMailBox = new Horde_Imap_Client_Mailbox($draftsFolder->getFolderId(), false);
-			$account->getImapConnection()->expunge($draftsMailBox);
+			$this->imapClientFactory->getClient($account)->expunge($draftsMailBox);
 		}
 
 		if ($replyData->isReply()) {
@@ -228,7 +234,7 @@ class MailTransmission implements IMailTransmission {
 			$draftsFolder->setMessageFlag($draftUID, Horde_Imap_Client::FLAG_DELETED, true);
 
 			$draftsMailBox = new Horde_Imap_Client_Mailbox($draftsFolder->getFolderId(), false);
-			$account->getImapConnection()->expunge($draftsMailBox);
+			$this->imapClientFactory->getClient($account)->expunge($draftsMailBox);
 		}
 
 		return $newUid;
