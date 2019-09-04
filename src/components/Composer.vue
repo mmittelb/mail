@@ -91,7 +91,8 @@
 		</div>
 		<div class="composer-fields">
 			<!--@keypress="onBodyKeyPress"-->
-			<ckeditor :editor="editor"
+			<ckeditor v-if="editorReady"
+					  :editor="editor"
 					  v-model="bodyVal"
 					  :config="editorConfig"
 					  name="body"
@@ -128,6 +129,7 @@ import Autosize from 'vue-autosize'
 import CKBalloon from '@ckeditor/ckeditor5-build-balloon'
 import CKEditor from '@ckeditor/ckeditor5-vue'
 import debouncePromise from 'debounce-promise'
+import {getLanguage} from 'nextcloud-l10n'
 import Multiselect from 'nextcloud-vue/dist/Components/Multiselect'
 import {translate as t} from 'nextcloud-l10n'
 import Vue from 'vue'
@@ -216,11 +218,10 @@ export default {
 			selectTo: this.to,
 			selectCc: this.cc,
 			selectBcc: this.bcc,
+			editorReady: false,
 			editor: CKBalloon,
-			editorConfig: {
-				placeholder: t('mail', 'Message …'),
-				toolbar: [ 'bold', 'italic', 'blockQuote'],
-			}
+			editorConfig: {},
+			editorLanguage: 'en',
 		}
 	},
 	computed: {
@@ -244,8 +245,33 @@ export default {
 			this.selectedAlias = this.aliases[0]
 		}
 		this.bodyVal = this.bodyWithSignature(this.selectedAlias, this.body)
+
+		this.loadEditorTranslations(getLanguage())
 	},
 	methods: {
+		showEditor(language) {
+			this.editorLanguage = language
+			this.editorConfig = {
+				language: language,
+					placeholder: t('mail', 'Message …'),
+					toolbar: [ 'bold', 'italic', 'blockQuote'],
+			}
+			this.editorReady = true
+		},
+		loadEditorTranslations(language) {
+			if (language === 'en') {
+				// The default, nothing to fetch
+				return this.showEditor('en')
+			}
+
+			import(
+				/* webpackMode: "lazy-once" */
+				/* webpackPrefetch: true */
+				/* webpackPreload: true */
+				`@ckeditor/ckeditor5-build-balloon/build/translations/${language}`)
+				.then(l => this.showEditor(language))
+				.catch(e => this.showEditor('en'))
+		},
 		recipientToRfc822(recipient) {
 			if (recipient.email === recipient.label) {
 				// From mailto or sender without proper label
