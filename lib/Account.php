@@ -176,96 +176,6 @@ class Account implements JsonSerializable {
 	}
 
 	/**
-	 * Send a new message or reply to an existing message
-	 *
-	 * @param IMessage $message
-	 * @param Horde_Mail_Transport $transport
-	 * @param int|null $draftUID
-	 * @return int message UID
-	 */
-	public function sendMessage(IMessage $message, Horde_Mail_Transport $transport, $draftUID) {
-		// build mime body
-		$headers = [
-			'From' => $message->getFrom()->first()->toHorde(),
-			'To' => $message->getTo()->toHorde(),
-			'Cc' => $message->getCC()->toHorde(),
-			'Bcc' => $message->getBCC()->toHorde(),
-			'Subject' => $message->getSubject(),
-		];
-
-		if (!is_null($message->getRepliedMessage())) {
-			$headers['In-Reply-To'] = $message->getRepliedMessage()->getMessageId();
-		}
-
-		$mail = new Horde_Mime_Mail();
-		$mail->addHeaders($headers);
-		$mail->setBody($message->getContent());
-
-		// Append cloud attachments
-		foreach ($message->getCloudAttachments() as $attachment) {
-			$mail->addMimePart($attachment);
-		}
-		// Append local attachments
-		foreach ($message->getLocalAttachments() as $attachment) {
-			$mail->addMimePart($attachment);
-		}
-
-		// Send the message
-		$mail->send($transport, false, false);
-
-		// Save the message in the sent folder
-		$sentFolder = $this->getSentFolder();
-		$raw = stream_get_contents($mail->getRaw());
-		$uid = $sentFolder->saveMessage($raw, [
-			Horde_Imap_Client::FLAG_SEEN
-		]);
-
-		// Delete draft if one exists
-		if (!is_null($draftUID)) {
-			$this->deleteDraft($draftUID);
-		}
-
-		return $uid;
-	}
-
-	/**
-	 * @param IMessage $message
-	 * @param int|null $previousUID
-	 * @return int
-	 */
-	public function saveDraft(IMessage $message, $previousUID) {
-		// build mime body
-		$headers = [
-			'From' => $message->getFrom()->first()->toHorde(),
-			'To' => $message->getTo()->toHorde(),
-			'Cc' => $message->getCC()->toHorde(),
-			'Bcc' => $message->getBCC()->toHorde(),
-			'Subject' => $message->getSubject(),
-			'Date' => Horde_Mime_Headers_Date::create(),
-		];
-
-		$mail = new Horde_Mime_Mail();
-		$mail->addHeaders($headers);
-		$mail->setBody($message->getContent());
-		$mail->addHeaderOb(Horde_Mime_Headers_MessageId::create());
-
-		// "Send" the message
-		$transport = new Horde_Mail_Transport_Null();
-		$mail->send($transport, false, false);
-		// save the message in the drafts folder
-		$draftsFolder = $this->getDraftsFolder();
-		$raw = stream_get_contents($mail->getRaw());
-		$newUid = $draftsFolder->saveDraft($raw);
-
-		// delete old version if one exists
-		if (!is_null($previousUID)) {
-			$this->deleteDraft($previousUID);
-		}
-
-		return $newUid;
-	}
-
-	/**
 	 * @param string $mailBox
 	 */
 	public function deleteMailbox($mailBox) {
@@ -417,17 +327,6 @@ class Account implements JsonSerializable {
 			return $this->guessBestMailBox($this->listMailboxes('Sent'));
 		}
 		return $sentFolders[0];
-	}
-
-	/**
-	 * @param int $messageId
-	 */
-	private function deleteDraft($messageId) {
-		$draftsFolder = $this->getDraftsFolder();
-		$draftsFolder->setMessageFlag($messageId, Horde_Imap_Client::FLAG_DELETED, true);
-
-		$draftsMailBox = new Horde_Imap_Client_Mailbox($draftsFolder->getFolderId(), false);
-		$this->getImapConnection()->expunge($draftsMailBox);
 	}
 
 	/**

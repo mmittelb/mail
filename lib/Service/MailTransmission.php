@@ -26,6 +26,12 @@ namespace OCA\Mail\Service;
 use Exception;
 use Horde_Exception;
 use Horde_Imap_Client;
+use Horde_Imap_Client_Mailbox;
+use Horde_Mail_Transport_Null;
+use Horde_Mime_Exception;
+use Horde_Mime_Headers_Date;
+use Horde_Mime_Headers_MessageId;
+use Horde_Mime_Mail;
 use OC\Files\Node\File;
 use OCA\Mail\Account;
 use OCA\Mail\Address;
@@ -87,7 +93,8 @@ class MailTransmission implements IMailTransmission {
 	 * @param RepliedMessageData $replyData
 	 * @param Alias|null $alias
 	 * @param int|null $draftUID
-	 * @return int message UID
+	 *
+	 * @throws ServiceException
 	 */
 	public function sendMessage(string $userId,
 								NewMessageData $messageData,
@@ -114,19 +121,65 @@ class MailTransmission implements IMailTransmission {
 		$this->handleAttachments($userId, $messageData, $message);
 
 		$transport = $this->clientFactory->create($account);
-		$uid = $account->sendMessage($message, $transport, $draftUID);
+		// build mime body
+		$headers = [
+			'From' => $message->getFrom()->first()->toHorde(),
+			'To' => $message->getTo()->toHorde(),
+			'Cc' => $message->getCC()->toHorde(),
+			'Bcc' => $message->getBCC()->toHorde(),
+			'Subject' => $message->getSubject(),
+		];
+
+		if ($message->getRepliedMessage() !== null) {
+			$headers['In-Reply-To'] = $message->getRepliedMessage()->getMessageId();
+		}
+
+		$mail = new Horde_Mime_Mail();
+		$mail->addHeaders($headers);
+		$mail->setBody($message->getContent());
+
+		// Append cloud attachments
+		foreach ($message->getCloudAttachments() as $attachment) {
+			$mail->addMimePart($attachment);
+		}
+		// Append local attachments
+		foreach ($message->getLocalAttachments() as $attachment) {
+			$mail->addMimePart($attachment);
+		}
+
+		// Send the message
+		try {
+			$mail->send($transport, false, false);
+		} catch (Horde_Mime_Exception $e) {
+			throw new ServiceException("Could not send message", 0, $e);
+		}
+
+		// Save the message in the sent folder
+		$sentFolder = $account->getSentFolder();
+		$raw = stream_get_contents($mail->getRaw());
+		$sentFolder->saveMessage($raw, [
+			Horde_Imap_Client::FLAG_SEEN
+		]);
+
+		// Delete draft if one exists
+		if ($draftUID !== null) {
+			$draftsFolder = $account->getDraftsFolder();
+			$draftsFolder->setMessageFlag($draftUID, Horde_Imap_Client::FLAG_DELETED, true);
+
+			$draftsMailBox = new Horde_Imap_Client_Mailbox($draftsFolder->getFolderId(), false);
+			$account->getImapConnection()->expunge($draftsMailBox);
+		}
 
 		if ($replyData->isReply()) {
 			$this->flagRepliedMessage($account, $replyData);
 		}
 		$this->collectMailAddresses($message);
-
-		return $uid;
 	}
 
 	/**
 	 * @param NewMessageData $message
 	 * @param int $draftUID
+	 *
 	 * @return int
 	 * @throws ServiceException
 	 */
@@ -143,18 +196,51 @@ class MailTransmission implements IMailTransmission {
 		$imapMessage->setBcc($message->getBcc());
 		$imapMessage->setContent($message->getBody());
 
-		// create transport and save message
+		// build mime body
+		$headers = [
+			'From' => $imapMessage->getFrom()->first()->toHorde(),
+			'To' => $imapMessage->getTo()->toHorde(),
+			'Cc' => $imapMessage->getCC()->toHorde(),
+			'Bcc' => $imapMessage->getBCC()->toHorde(),
+			'Subject' => $imapMessage->getSubject(),
+			'Date' => Horde_Mime_Headers_Date::create(),
+		];
+
+		$mail = new Horde_Mime_Mail();
+		$mail->addHeaders($headers);
+		$mail->setBody($imapMessage->getContent());
+		$mail->addHeaderOb(Horde_Mime_Headers_MessageId::create());
+
+		// "Send" the message
 		try {
-			return $account->saveDraft($imapMessage, $draftUID);
+			$transport = new Horde_Mail_Transport_Null();
+			$mail->send($transport, false, false);
+			// save the message in the drafts folder
+			$draftsFolder = $account->getDraftsFolder();
+			$raw = stream_get_contents($mail->getRaw());
+			$newUid = $draftsFolder->saveDraft($raw);
 		} catch (Horde_Exception $ex) {
 			throw new ServiceException('Could not save draft message', 0, $ex);
 		}
+
+		// delete old version if one exists
+		if ($draftUID !== null) {
+			$draftsFolder->setMessageFlag($draftUID, Horde_Imap_Client::FLAG_DELETED, true);
+
+			$draftsMailBox = new Horde_Imap_Client_Mailbox($draftsFolder->getFolderId(), false);
+			$account->getImapConnection()->expunge($draftsMailBox);
+		}
+
+		return $newUid;
+
+
 	}
 
 	/**
 	 * @param Account $account
 	 * @param NewMessageData $messageData
 	 * @param RepliedMessageData $replyData
+	 *
 	 * @return IMessage
 	 */
 	private function buildReplyMessage(Account $account,
@@ -185,6 +271,7 @@ class MailTransmission implements IMailTransmission {
 	/**
 	 * @param Account $account
 	 * @param NewMessageData $messageData
+	 *
 	 * @return IMessage
 	 */
 	private function buildNewMessage(Account $account, NewMessageData $messageData) {
@@ -224,6 +311,7 @@ class MailTransmission implements IMailTransmission {
 	 * @param string $userId
 	 * @param array $attachment
 	 * @param IMessage $message
+	 *
 	 * @return int|null
 	 */
 	private function handleLocalAttachment(string $userId, array $attachment, IMessage $message) {
@@ -232,7 +320,7 @@ class MailTransmission implements IMailTransmission {
 			return null;
 		}
 
-		$id = (int) $attachment['id'];
+		$id = (int)$attachment['id'];
 
 		try {
 			list($localAttachment, $file) = $this->attachmentService->getAttachment($userId, $id);
@@ -247,6 +335,7 @@ class MailTransmission implements IMailTransmission {
 	/**
 	 * @param array $attachment
 	 * @param IMessage $message
+	 *
 	 * @return File|null
 	 */
 	private function handleCloudAttachment(array $attachment, IMessage $message) {
