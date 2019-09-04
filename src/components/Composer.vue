@@ -131,7 +131,6 @@ import EssentialsPlugin from '@ckeditor/ckeditor5-essentials/src/essentials'
 import BoldPlugin from '@ckeditor/ckeditor5-basic-styles/src/bold'
 import ItalicPlugin from '@ckeditor/ckeditor5-basic-styles/src/italic'
 import ParagraphPlugin from '@ckeditor/ckeditor5-paragraph/src/paragraph'
-import BlockQuotePlugin from '@ckeditor/ckeditor5-block-quote/src/blockquote'
 import debouncePromise from 'debounce-promise'
 import Multiselect from 'nextcloud-vue/dist/Components/Multiselect'
 import {translate as t} from 'nextcloud-l10n'
@@ -225,9 +224,8 @@ export default {
 			editorConfig: {
 				placeholder: t('mail', 'Message …'),
 				plugins: [
-					BlockQuotePlugin,
-					BoldPlugin,
 					EssentialsPlugin,
+					BoldPlugin,
 					ItalicPlugin,
 					ParagraphPlugin,
 				],
@@ -235,9 +233,9 @@ export default {
 					items: [
 						'bold',
 						'italic',
-						'blockQuote',
 					]
 				}
+				//toolbar: [ 'bold', 'italic', 'blockQuote'],
 			}
 		}
 	},
