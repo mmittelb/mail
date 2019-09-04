@@ -130,7 +130,6 @@ import CKEditor from '@ckeditor/ckeditor5-vue'
 import EssentialsPlugin from '@ckeditor/ckeditor5-essentials/src/essentials'
 import BoldPlugin from '@ckeditor/ckeditor5-basic-styles/src/bold'
 import ItalicPlugin from '@ckeditor/ckeditor5-basic-styles/src/italic'
-import ParagraphPlugin from '@ckeditor/ckeditor5-paragraph/src/paragraph'
 import debouncePromise from 'debounce-promise'
 import Multiselect from 'nextcloud-vue/dist/Components/Multiselect'
 import {translate as t} from 'nextcloud-l10n'
@@ -227,7 +226,6 @@ export default {
 					EssentialsPlugin,
 					BoldPlugin,
 					ItalicPlugin,
-					ParagraphPlugin,
 				],
 				toolbar: {
 					items: [
