@@ -24,12 +24,16 @@
 namespace OCA\Mail\Listener;
 
 use Horde_Imap_Client;
+use Horde_Imap_Client_Exception;
+use Horde_Imap_Client_Exception_NoSupportExtension;
 use OCA\Mail\Db\MailboxMapper;
 use OCA\Mail\Events\MessageSentEvent;
 use OCA\Mail\IMAP\IMAPClientFactory;
 use OCA\Mail\IMAP\MessageMapper;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
+use OCP\ILogger;
 
 class FlagRepliedMessageListener implements IEventListener {
 
@@ -40,15 +44,20 @@ class FlagRepliedMessageListener implements IEventListener {
 	private $mailboxMapper;
 
 	/** @var MessageMapper */
-	private $mapper;
+	private $messageMapper;
+
+	/** @var ILogger */
+	private $logger;
 
 	public function __construct(IMAPClientFactory $imapClientFactory,
 								MailboxMapper $mailboxMapper,
-								MessageMapper $mapper) {
+								MessageMapper $mapper,
+								ILogger $logger) {
 
 		$this->imapClientFactory = $imapClientFactory;
 		$this->mailboxMapper = $mailboxMapper;
-		$this->mapper = $mapper;
+		$this->messageMapper = $mapper;
+		$this->logger = $logger;
 	}
 
 	public function handle(Event $event): void {
@@ -56,18 +65,35 @@ class FlagRepliedMessageListener implements IEventListener {
 			return;
 		}
 
-		$client = $this->imapClientFactory->getClient($event->getAccount());
-		$mailbox = $this->mailboxMapper->find(
-			$event->getAccount(),
-			base64_decode($event->getRepliedMessageData()->getFolderId())
-		);
+		try {
+			$mailbox = $this->mailboxMapper->find(
+				$event->getAccount(),
+				base64_decode($event->getRepliedMessageData()->getFolderId())
+			);
+		} catch (DoesNotExistException $e) {
+			$this->logger->logException($e, [
+				'message' => 'Could not flag the message in reply to',
+				'level' => ILogger::WARN,
+			]);
+			// Not critical -> continue
+			return;
+		}
 
-		$this->mapper->addFlag(
-			$client,
-			$mailbox,
-			$event->getRepliedMessageData()->getId(),
-			Horde_Imap_Client::FLAG_ANSWERED
-		);
+		try {
+			$client = $this->imapClientFactory->getClient($event->getAccount());
+			$this->messageMapper->addFlag(
+				$client,
+				$mailbox,
+				$event->getRepliedMessageData()->getId(),
+				Horde_Imap_Client::FLAG_ANSWERED
+			);
+		} catch (Horde_Imap_Client_Exception_NoSupportExtension $e) {
+		} catch (Horde_Imap_Client_Exception $e) {
+			$this->logger->logException($e, [
+				'message' => 'Could not flag replied message',
+				'level' => ILogger::WARN,
+			]);
+		}
 	}
 
 }
