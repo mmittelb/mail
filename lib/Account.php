@@ -238,20 +238,6 @@ class Account implements JsonSerializable {
 	}
 
 	/**
-	 * Get a list of all mailboxes in this account
-	 *
-	 * @return Mailbox[]
-	 */
-	public function getMailboxes() {
-		if ($this->mailboxes === null) {
-			$this->mailboxes = $this->listMailboxes();
-			$this->localizeSpecialMailboxes();
-		}
-
-		return $this->mailboxes;
-	}
-
-	/**
 	 * @return array
 	 */
 	public function jsonSerialize() {

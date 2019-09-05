@@ -109,10 +109,12 @@ class SaveSentMessageListener implements IEventListener {
 				]
 			);
 		} catch (Horde_Imap_Client_Exception $e) {
+			// Let's assume this error is caused because the mailbox already exists,
+			// caused by concurrent requests or out-of-sync mailbox cache
 			$this->logger->logException($e, [
 				'message' => 'Could not create sent mailbox',
+				'level' => ILogger::WARN,
 			]);
-			throw new ServiceException('Could not create sent mailbox', 0, $e);
 		}
 
 		// TODO: find a more elegant solution for updating the mailbox cache

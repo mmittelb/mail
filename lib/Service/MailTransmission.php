@@ -214,7 +214,7 @@ class MailTransmission implements IMailTransmission {
 		$mail->setBody($imapMessage->getContent());
 		$mail->addHeaderOb(Horde_Mime_Headers_MessageId::create());
 
-		// "Send" the message
+		// 'Send' the message
 		try {
 			$transport = new Horde_Mail_Transport_Null();
 			$mail->send($transport, false, false);

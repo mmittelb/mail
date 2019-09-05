@@ -127,7 +127,15 @@ class SaveSentMessageListenerTest extends TestCase {
 				]
 			)
 			->willThrowException(new \Horde_Imap_Client_Exception());
-		$this->expectException(ServiceException::class);
+		$this->logger->expects($this->once())
+			->method('logException')
+			->with(
+				$this->anything(),
+				$this->equalTo([
+					'message' => 'Could not create sent mailbox',
+					'level' => ILogger::WARN,
+				])
+			);
 
 		$this->listener->handle($event);
 	}

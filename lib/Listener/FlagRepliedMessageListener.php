@@ -87,8 +87,7 @@ class FlagRepliedMessageListener implements IEventListener {
 				$event->getRepliedMessageData()->getId(),
 				Horde_Imap_Client::FLAG_ANSWERED
 			);
-		} catch (Horde_Imap_Client_Exception_NoSupportExtension $e) {
-		} catch (Horde_Imap_Client_Exception $e) {
+		} catch (Horde_Imap_Client_Exception_NoSupportExtension|Horde_Imap_Client_Exception $e) {
 			$this->logger->logException($e, [
 				'message' => 'Could not flag replied message',
 				'level' => ILogger::WARN,

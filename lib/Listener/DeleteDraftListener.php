@@ -91,8 +91,7 @@ class DeleteDraftListener implements IEventListener {
 				$draftUid,
 				Horde_Imap_Client::FLAG_DELETED
 			);
-		} catch (Horde_Imap_Client_Exception_NoSupportExtension $e) {
-		} catch (Horde_Imap_Client_Exception $e) {
+		} catch (Horde_Imap_Client_Exception_NoSupportExtension|Horde_Imap_Client_Exception $e) {
 			$this->logger->logException($e, [
 				'message' => 'Could not flag draft as deleted'
 			]);
