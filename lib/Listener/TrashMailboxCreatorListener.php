@@ -66,7 +66,7 @@ class TrashMailboxCreatorListener implements IEventListener {
 		try {
 			$this->mailboxMapper->findSpecial(
 				$event->getAccount(),
-				"trash"
+				'trash'
 			);
 		} catch (DoesNotExistException $e) {
 			$this->logger->debug("Creating trash mailbox");
@@ -81,21 +81,21 @@ class TrashMailboxCreatorListener implements IEventListener {
 		try {
 			// TODO: localize mailbox name
 			$client->createMailbox(
-				"Trash",
+				'Trash',
 				[
-					"special_use" => [
+					'special_use' => [
 						\Horde_Imap_Client::SPECIALUSE_TRASH,
 					],
 				]
 			);
+
+			// TODO: find a more elegant solution for updating the mailbox cache
+			$this->mailboxSync->sync($account, true);
 		} catch (Horde_Imap_Client_Exception $e) {
 			$this->logger->logException($e, [
-				"message" => "Could not creat trash mailbox",
+				'message' => 'Could not creat trash mailbox',
 			]);
 		}
-
-		// TODO: find a more elegant solution for updating the mailbox cache
-		$this->mailboxSync->sync($account, true);
 	}
 
 }
