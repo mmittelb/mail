@@ -30,8 +30,16 @@ use OCA\Mail\Contracts\IMailManager;
 use OCA\Mail\Contracts\IMailTransmission;
 use OCA\Mail\Contracts\IUserPreferences;
 use OCA\Mail\Events\BeforeMessageDeletedEvent;
+use OCA\Mail\Events\DraftSavedEvent;
+use OCA\Mail\Events\MessageSentEvent;
+use OCA\Mail\Events\SaveDraftEvent;
 use OCA\Mail\Http\Middleware\ErrorMiddleware;
-use OCA\Mail\Listener\MessageDeleteTrashCreatorListener;
+use OCA\Mail\Listener\AddressCollectionListener;
+use OCA\Mail\Listener\DeleteDraftListener;
+use OCA\Mail\Listener\DraftMailboxCreatorListener;
+use OCA\Mail\Listener\FlagRepliedMessageListener;
+use OCA\Mail\Listener\TrashMailboxCreatorListener;
+use OCA\Mail\Listener\SaveSentMessageListener;
 use OCA\Mail\Service\Attachment\AttachmentService;
 use OCA\Mail\Service\AvatarService;
 use OCA\Mail\Service\Group\IGroupService;
@@ -86,7 +94,13 @@ class Application extends App {
 		/** @var IEventDispatcher $dispatcher */
 		$dispatcher = $this->getContainer()->query(IEventDispatcher::class);
 
-		$dispatcher->addServiceListener(BeforeMessageDeletedEvent::class, MessageDeleteTrashCreatorListener::class);
+		$dispatcher->addServiceListener(BeforeMessageDeletedEvent::class, TrashMailboxCreatorListener::class);
+		$dispatcher->addServiceListener(DraftSavedEvent::class, DeleteDraftListener::class);
+		$dispatcher->addServiceListener(MessageSentEvent::class, AddressCollectionListener::class);
+		$dispatcher->addServiceListener(MessageSentEvent::class, DeleteDraftListener::class);
+		$dispatcher->addServiceListener(MessageSentEvent::class, FlagRepliedMessageListener::class);
+		$dispatcher->addServiceListener(MessageSentEvent::class, SaveSentMessageListener::class);
+		$dispatcher->addServiceListener(SaveDraftEvent::class, DraftMailboxCreatorListener::class);
 	}
 
 }

@@ -34,7 +34,7 @@ use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\ILogger;
 
-class MessageDeleteTrashCreatorListener implements IEventListener {
+class TrashMailboxCreatorListener implements IEventListener {
 
 	/** @var MailboxMapper */
 	private $mailboxMapper;
